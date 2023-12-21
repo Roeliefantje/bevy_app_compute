@@ -1,6 +1,6 @@
 use core::panic;
 use std::{marker::PhantomData, ops::Deref};
-
+use bevy::log::info;
 use bevy::{
     prelude::{Res, ResMut, Resource},
     render::{
@@ -21,6 +21,7 @@ use crate::{
     traits::ComputeWorker,
     worker_builder::AppComputeWorkerBuilder,
 };
+use pollster::FutureExt;
 
 #[derive(PartialEq, Clone, Copy)]
 pub enum RunMode {
@@ -208,13 +209,36 @@ impl<W: ComputeWorker> AppComputeWorker<W> {
         for (_, staging_buffer) in self.staging_buffers.iter_mut() {
             let read_buffer_slice = staging_buffer.buffer.slice(..);
 
+            let (tx, rx) = futures_intrusive::channel::shared::oneshot_channel();
             read_buffer_slice.map_async(wgpu::MapMode::Read, move |result| {
-                let err = result.err();
-                if err.is_some() {
-                    let some_err = err.unwrap();
-                    panic!("{}", some_err.to_string());
-                }
+                tx.send(result).unwrap();
             });
+            self.render_device.wgpu_device().poll(wgpu::Maintain::Wait);
+            
+            #[cfg(not(target_arch = "wasm32"))]
+            {
+                async {
+                    rx.receive().await.unwrap().unwrap();
+                }
+                .block_on();
+            }
+            
+            #[cfg(target_arch = "wasm32")]
+            {
+                //info!("In correct target arch");
+                wasm_bindgen_futures::spawn_local(async move {
+                    rx.receive().await.unwrap().unwrap()
+                })
+                
+            }
+            
+            // read_buffer_slice.map_async(wgpu::MapMode::Read, move |result| {
+            //     let err = result.err();
+            //     if err.is_some() {
+            //         let some_err = err.unwrap();
+            //         panic!("{}", some_err.to_string());
+            //     }
+            // });
 
             staging_buffer.mapped = true;
         }
@@ -228,6 +252,7 @@ impl<W: ComputeWorker> AppComputeWorker<W> {
             .staging_buffers
             .get(target)
             else { return Err(Error::StagingBufferNotFound(target.to_owned()))};
+        
 
         let result = staging_buffer.buffer.slice(..).get_mapped_range();
 
@@ -373,7 +398,7 @@ impl<W: ComputeWorker> AppComputeWorker<W> {
             worker.map_staging_buffers();
         }
 
-        if worker.run_mode != RunMode::OneShot(false) && worker.poll() {
+        if worker.run_mode != RunMode::OneShot(false) {
             worker.state = WorkerState::FinishedWorking;
             worker.command_encoder = Some(
                 worker

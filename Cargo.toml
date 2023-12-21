@@ -41,13 +41,39 @@ parking_lot = "0.12.1"
 wgpu = { version = "0.17.1", features = ["naga"] }
 codespan-reporting = "0.11.1"
 futures-lite = "1.13.0"
+futures-intrusive = "0.4.0"
 bytemuck = "1.4.0"
 naga = { version = "0.13.0", features = ["wgsl-in"] }
 naga_oil = "0.10"
+pollster = "0.2.5"
+wasm-bindgen-futures = "0.4.39"
 
 [dev-dependencies]
 rand = "0.8.5"
-bevy = { version = "0.12", features = ["wayland"] }
+bevy = { version = "0.12.1", default-features = false, features = [
+  "animation",
+  "bevy_asset",
+  "bevy_audio",
+  "bevy_gilrs",
+  "bevy_scene",
+  "bevy_winit",
+  "bevy_core_pipeline",
+  "bevy_pbr",
+  "bevy_gltf",
+  "bevy_render",
+  "bevy_sprite",
+  "bevy_text",
+  "bevy_ui",
+  "multi-threaded",
+  "png",
+  "hdr",
+  "vorbis",
+  "x11",
+  "bevy_gizmos",
+  "android_shared_stdcxx",
+  "tonemapping_luts",
+  "default_font",
+] }
 
 [[example]]
 name = "simple"

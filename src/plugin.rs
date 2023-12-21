@@ -11,7 +11,9 @@ use crate::{
 pub struct AppComputePlugin;
 
 impl Plugin for AppComputePlugin {
-    fn build(&self, _app: &mut App) {}
+    fn build(&self, _app: &mut App) {
+        info!("Building the Compute Plugin");
+    }
 
     fn finish(&self, app: &mut App) {
         let render_device = app.world.resource::<RenderDevice>().clone();
@@ -19,6 +21,8 @@ impl Plugin for AppComputePlugin {
         app.insert_resource(AppPipelineCache::new(render_device))
             .add_systems(PreUpdate, extract_shaders)
             .add_systems(Update, process_pipeline_queue_system);
+
+        info!("Succesfully build the AppComputePlugin");
     }
 }
 
@@ -36,7 +40,9 @@ impl<W: ComputeWorker> Default for AppComputeWorkerPlugin<W> {
 }
 
 impl<W: ComputeWorker> Plugin for AppComputeWorkerPlugin<W> {
-    fn build(&self, _app: &mut App) {}
+    fn build(&self, _app: &mut App) {
+        info!("Building compute worker");
+    }
 
     fn finish(&self, app: &mut App) {
         let worker = W::build(&mut app.world);
@@ -47,5 +53,6 @@ impl<W: ComputeWorker> Plugin for AppComputeWorkerPlugin<W> {
                 PostUpdate,
                 (AppComputeWorker::<W>::unmap_all, AppComputeWorker::<W>::run).chain(),
             );
+        info!("Custom Compute worker has been build and added to app.")
     }
 }
